@@ -1,0 +1,288 @@
+---
+title: "Data Cleaning: Interfamilial Violence and Corruption in Guatemala"
+author: "Rachel Rosenberg"
+date: "7/10/2020"
+output: 
+  pdf_document: 
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Setting up the Data
+
+The [2012](https://docs.google.com/spreadsheets/d/1SfONash2AcxWDhOzdOZrOGsJhGOZq4XWeXJUzzOGvlQ/edit#gid=0) and [2013](https://docs.google.com/spreadsheets/d/1VDXSHcyIVZMQam1wqsf3_6ecSY8RI3PmudGR9AnNPlk/edit#gid=0) data sets include municipal-level information on birth rates, crime rates, homicide rates, and interfamiliar violence (i.e. domestic violence). 
+
+**To begin:**
+
+*Set the working directory and clear the environment;*
+```{r}
+#Set the working directory
+setwd("/Users/racheleryn/Documents/Git/GuatemalaProject")
+
+#Clear the environment
+rm(list=ls(all=TRUE))
+```
+
+*Upload the 2012 and 2013 data;*
+```{r}
+#Call the rio package
+library(rio) 
+
+#Import the Excel documents
+g_2012 = import("2012.xlsx") #the data from 2012 will be called g_2012
+g_2013 = import("2013.xlsx") #the data from 2013 will be called g_2013 
+```
+
+*Preview the g_2012 data;*
+```{r}
+str(g_2012)
+```
+
+*Preview the g_2013 data;*
+```{r}
+str(g_2013)
+```
+
+
+## Section 1: Clean Data 
+1. Put the municipality and department variables in lowercase with the (tolower) command.
+
+  **For 2012:**
+```{r}
+#Lower case for the municipality and department variables for g_2012 data
+g_2012$municipio = tolower(g_2012$municipio)
+g_2012$departamento = tolower(g_2012$departamento)
+
+#Check that the changes went through
+head(g_2012, n = 1)
+```
+
+  **For 2013:**
+```{r}
+#Lowering case for the municipality and department variables for g_2013 data
+g_2013$municipio = tolower(g_2013$municipio)
+g_2013$departamento = tolower(g_2013$departamento)
+
+#Check that the changes went through
+head(g_2013, n = 1)
+```
+
+2. Remove the accents from those same lowercase department and municipality variables.
+```{r}
+#Create a function to remove accents 
+remove.accents = function(s){
+  old1 = "áéóíúñ"
+  new1 = "aeoiun"
+  s1 = chartr(old1, new1, s) 
+}
+```
+
+  **For 2012:**
+```{r}
+#Remove accents for the g_2012 data
+g_2012$departamento = remove.accents(g_2012$departamento)
+g_2012$municipio = remove.accents(g_2012$municipio)
+
+#Check that the changes went through
+head(g_2012, n = 1)
+```
+
+  **For 2013:**
+```{r}
+#Remove accents for the g_2013 data
+g_2013$departamento = remove.accents(g_2013$departamento)
+g_2013$municipio = remove.accents(g_2013$municipio)
+
+#Check that the changes went through
+head(g_2013, n = 1)
+```
+
+
+3. Rename the variables so that there are no spaces and replace those spaces with underscores.
+
+  **For 2012:**
+```{r}
+#Fix the column names for g_2012
+colnames(g_2012) = gsub(" ", "_", colnames(g_2012))
+
+#Check that the changes went through
+head(g_2012, n = 1)
+```
+
+  **For 2013**    
+```{r}
+#Fix the column names for g_2013
+colnames(g_2013) = gsub(" ", "_", colnames(g_2013))
+
+#Check that the changes went through
+head(g_2013, n = 1)
+```
+
+
+4. Add year variables to each of the files.
+```{r, include = FALSE}
+#Call the dplyr package
+library(dplyr)
+```
+```{r}
+#Create variables with the respective years
+year12 = 2012
+year13 = 2013
+
+#Add the variables to the data frames using the dplyr package
+g_2012 = mutate(g_2012,year12) 
+g_2013 = mutate(g_2013,year13)
+
+#Rename the variables using the dplyr package 
+g_2012 = g_2012 %>% rename(year = year12)
+g_2013 = g_2013 %>% rename(year = year13)
+
+#Check that the changes went through
+colnames(g_2012) #for 2012
+colnames(g_2013) #for 2013
+```
+
+5. Ensure that all variables are the correct class.
+```{r}
+#Check the structure of the g_2012 data set
+str(g_2012) 
+
+#Check the structure of the g_2013 data set
+str(g_2013) 
+```
+
+6. Label all of the variables using the labelled package.
+```{r, include = FALSE}
+library(labelled)
+```
+```{r}
+#Change Labels for the g_2012 data set with the labelled package
+var_label(g_2012) <- list(`departamento` = "Department",
+                          `municipio` = "Municipality",
+                          `tasa_bruta_de_natalidad` = "Birth Rate",
+                          `tasa_de_criminalidad` = "Crime Rate",
+                          `tasa_de_homicidios` = "Homicide Rate",
+                          `violencia_intrafamiliar` = "Domestic Violence",
+                          `year` = "Year")
+
+#Change labels for the g_2013 data set
+var_label(g_2013) <- list(`departamento` = "Department",
+                          `municipio` = "Municipality",
+                          `tasa_bruta_de_natalidad` = "Birth Rate",
+                          `tasa_de_criminalidad` = "Crime Rate",
+                          `tasa_de_homicidios` = "Homicide Rate",
+                          `violencia_intrafamiliar` = "Domestic Violence",
+                          `year` = "Year")
+```
+
+
+7. Save each of the cleaned cross-sectional data sets as Stata data sets.
+```{r, eval = FALSE}
+export(g_2012, file = "clean_g_2012.dta") #the clean data set for the g_2012 data
+export(g_2013, file = "clean_g_2013.dta") #the clean data set for the g_2013 data
+```
+
+
+## Section 2: Append Panel Data
+```{r, include = FALSE}
+#Append g_2012 and g_2013
+library(tidyverse)
+```
+```{r}
+#Append g_2012 and g_2013
+append_data = bind_rows(g_2012,g_2013)
+
+#View the dimensions to check the append
+dim(append_data)
+```
+```{r}
+#Save the panel data in a Stata file
+export(append_data, file = "panel_data.dta") #the appended 2012 and 2013 data frame
+```
+
+## Section 3: Merge Data Sets
+```{r}
+#Import the v5_guatemala_clean.dta file
+v5_guatemala_cleaned = import("v5_guatemala_cleaned.dta") 
+
+#Look at the structure of the data
+dim(v5_guatemala_cleaned)
+str(v5_guatemala_cleaned)
+```
+
+**Rename `municipio` and `departamento` columns in `append_data` to ensure they merge as the same columns in the `v5_guatemala_clean` data:**
+
+```{r}
+#Rename the variables using the dplyr package
+append_data = append_data %>%
+  rename(department = departamento,
+         municipality = municipio)
+
+#Check to make sure the changes went through
+colnames(append_data)
+
+#Adjust the labels with the labelled package
+var_label(append_data) <- list(`department` = "Department",
+                          `municipality` = "Municipality",
+                          `tasa_bruta_de_natalidad` = "Birth Rate",
+                          `tasa_de_criminalidad` = "Crime Rate",
+                          `tasa_de_homicidios` = "Homicide Rate",
+                          `violencia_intrafamiliar` = "Domestic Violence",
+                          `year` = "Year")
+```
+
+**Merge the data:**
+
+```{r}
+#merge append_data and v5_guatemala_clean data 
+v6_Guatemala = left_join(x = v5_guatemala_cleaned, y = append_data)
+
+#check the merge
+dim(v6_Guatemala)
+colnames(v6_Guatemala)
+
+#Save the new data set as a Stata file
+export(v6_Guatemala, file = "v6_Guatemala.dta")
+```
+## Section 4: Prepare Specifications
+
+**Specification context**
+
+Domestic violence is the outcome that I'm interested in analyzing. I consider domestic violence the "x" variable in my future analyses. I consider corruption, mayor gender, crime rate, and homicide rate as potential "y" variables that may explain variation in "x" values (i.e. domestic violence). Note: This data set only includes domestic violence, homicide rates, and crime rates for years 2012 and 2013. I hope to add more years of these municipal-level data in the future.
+
+For quick reference: `violencia_intrafamiliar` is the variable to account for domestic violence. `infrac_amount_` is the variable to account for corruption. `tasa_de_homicidios` is the variable to account for homicide rates. `tasa_de_criminalidad` is the variable to account for crime rates. `female` is a dummy variable to account for mayor gender.
+
+```{r}
+#Specification 1: corruption and domestic violence
+specification1 = v6_Guatemala %>% drop_na("violencia_intrafamiliar", 
+                                          "infrac_amount_")
+dim(specification1)
+
+#Specification 2: mayor gender and domestic violence
+specification2 = v6_Guatemala %>% drop_na("violencia_intrafamiliar",
+                                          "female")
+dim(specification2)
+
+#Specification 3: corruption, mayor gender, and domestic violence
+specification3 = v6_Guatemala %>% drop_na("infrac_amount_", 
+                                          "female", "violencia_intrafamiliar")
+dim(specification3)
+
+#Specification 4: crime rate, homicide rate, and domestic violence
+specification4 = v6_Guatemala %>% drop_na("tasa_de_criminalidad", 
+                                          "tasa_de_homicidios", 
+                                          "violencia_intrafamiliar")
+dim(specification4)
+```
+
+## Section 5: Initialize to Git
+
+For the R Markdown version of this document, click on this [LINK](https://github.com/r-rosenberg/GuatemalaProject) to access its repository on GitHub - "GuatemalaProject." 
+
+
+
+
+
